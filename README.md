@@ -73,3 +73,11 @@ Each main section has its own URL/file, while sharing the same navigation, theme
 
 ## License
 See `LICENSE`.
+
+
+## NCERT chapter catalogue update
+The `ncert-catalog.js` file adds chapter navigation for common Class 11–12 NCERT subjects. Chapter names and editions can change with rationalisation, so verify against the official NCERT textbook portal: https://ncert.nic.in/textbook.php. StudySphere uses original study-guide prompts; it does not reproduce full NCERT textbook chapters. The class selector updates the active class and chapter list.
+
+
+## NCERT chapter catalogue update
+The `ncert-catalog.js` file adds chapter navigation for common Class 11–12 NCERT subjects. Chapter names and editions can change with rationalisation, so verify against the official NCERT textbook portal: https://ncert.nic.in/textbook.php. StudySphere uses original study-guide prompts; it does not reproduce full NCERT textbook chapters. The class selector updates the active class and chapter list.

@@ -79,7 +79,7 @@
   }
   function subjectIcon(s) { return `<span class="subject-icon ${safe(s.tone)}">${safe(s.icon)}</span>`; }
   function renderDashboard() {
-    $("#classSelect").value=state.classLevel;
+    const classPicker=$("#classSelect"); if(classPicker && classPicker.value!==String(state.classLevel)) classPicker.value=String(state.classLevel);
     if($("#boardSelect")) $("#boardSelect").value=state.board||"CBSE";
     const cls=Number(state.classLevel);
     const list=data.chapters.filter(c=>c.class===cls).slice(0,3);
@@ -104,13 +104,14 @@
     $("#savedStat").innerHTML=`${state.saved.length+state.notes.length} <small>items</small>`;
   }
   function renderChapters() {
+    const classPicker=$("#classSelect"); if(classPicker && classPicker.value!==String(state.classLevel)) classPicker.value=String(state.classLevel);
     const cls=Number(state.classLevel),subjectFilter=$("#subjectFilter").value||"all",query=($("#chapterSearch").value||"").trim().toLowerCase();
     const list=data.chapters.filter(c=>(c.class===cls)&&(stream==="all"||c.stream===stream)&&(subjectFilter==="all"||c.subject===subjectFilter)&&(!query||`${c.title} ${c.description} ${subject(c.subject).name}`.toLowerCase().includes(query)));
     $("#chapterGrid").innerHTML=list.length?list.map(c=>{const s=subject(c.subject),done=state.completed.includes(c.id),saved=state.saved.includes(c.id);return `<article class="chapter-card"><div class="chapter-top"><span class="chapter-tag">${safe(s.name.toUpperCase())} · CLASS ${c.class}</span><button class="bookmark-button ${saved?"saved":""}" data-save="${safe(c.id)}" aria-label="${saved?"Remove bookmark":"Save chapter"}">${saved?"♥":"♡"}</button></div><h3>${safe(c.title)}</h3><p>${safe(c.description)}</p><div class="chapter-meta"><span>◷ ${c.minutes} min · ${safe(c.level)}</span><button data-open-chapter="${safe(c.id)}">${done?"Review topic":"Learn topic"} →</button></div></article>`}).join(""):`<div class="panel empty-state">No chapters match these filters. Try another subject or search.</div>`;
   }
   function openChapter(id) {
     const c=chapter(id); if(!c)return; const s=subject(c.subject),done=state.completed.includes(id);
-    $("#modalContent").innerHTML=`<div class="eyebrow">${safe(s.name.toUpperCase())} · CLASS ${c.class}</div><h2 id="modalTitle">${safe(c.title)}</h2><p>${safe(c.description)}</p><h3>In simple words</h3><p>${safe(c.summary)}</p><h3>Key points to remember</h3><ul>${c.points.map(p=>`<li>${safe(p)}</li>`).join("")}</ul><h3>Everyday example</h3><p>${safe(c.example)}</p><div class="modal-actions"><button class="primary-button" id="markComplete">${done?"✓ Completed — mark incomplete":"Mark topic complete ✓"}</button><button class="secondary-button" id="askAboutChapter">Ask AI tutor ↗</button></div>`;
+    $("#modalContent").innerHTML=`<div class="eyebrow">${safe(s.name.toUpperCase())} · CLASS ${c.class}</div><h2 id="modalTitle">${safe(c.title)}</h2><p>${safe(c.description)}</p><h3>Chapter explanation</h3><p>${safe(c.summary)}</p><h3>Key concepts and revision notes</h3><ul>${c.points.map(p=>`<li>${safe(p)}</li>`).join("")}</ul><h3>Apply the idea</h3><p>${safe(c.example)}</p><h3>Check your understanding</h3><ol><li>Explain the chapter's central idea in 3–5 sentences.</li><li>Write down five important terms and define each in your own words.</li><li>Try the NCERT in-text questions and exercises, then check your reasoning.</li></ol><p class="official-book-link"><a href="https://ncert.nic.in/textbook.php" target="_blank" rel="noopener">Open official NCERT textbooks ↗</a></p><div class="modal-actions"><button class="primary-button" id="markComplete">${done?"✓ Completed — mark incomplete":"Mark topic complete ✓"}</button><button class="secondary-button" id="askAboutChapter">Ask AI tutor ↗</button></div>`;
     $("#modalBackdrop").classList.remove("hidden");
     $("#markComplete").onclick=()=>{if(state.completed.includes(id))state.completed=state.completed.filter(x=>x!==id);else{state.completed.push(id);state.minutes+=c.minutes;state.activity[dayKey(6)]=(state.activity[dayKey(6)]||0)+c.minutes;}save();renderDashboard();renderChapters();$("#modalBackdrop").classList.add("hidden");toast(state.completed.includes(id)?"Topic marked complete!":"Completion removed.");};
     $("#askAboutChapter").onclick=()=>{ $("#modalBackdrop").classList.add("hidden");showView("tutor");sendPrompt(`Explain ${c.title} from Class ${c.class} ${s.name} in simple language. Include a short example and key points.`);};
@@ -207,7 +208,9 @@
     });
     $$(".nav-item").forEach(btn=>btn.addEventListener("click",()=>showView(btn.dataset.view)));
     $("#themeToggle").addEventListener("click",()=>{state.theme=state.theme==="dark"?"light":"dark";document.documentElement.dataset.theme=state.theme;$("#themeIcon").textContent=state.theme==="dark"?"☀":"☾";save();});
-    $("#classSelect").addEventListener("change",e=>{state.classLevel=e.target.value;save();renderDashboard();renderChapters();toast(`Showing Class ${state.classLevel} content.`);});
+    const classPicker=$("#classSelect");
+    const changeClass=e=>{const next=String(e.target.value);if(!["11","12"].includes(next))return;state.classLevel=next;try{localStorage.setItem(STORE,JSON.stringify(state));}catch{};renderDashboard();renderChapters();renderPyqs();renderQuizHistory();toast(`Showing Class ${state.classLevel} content.`);};
+    classPicker.addEventListener("change",changeClass); classPicker.addEventListener("input",changeClass);
     $("#boardSelect")?.addEventListener("change",e=>{state.board=e.target.value;save();toast(`Board preference set to ${state.board}. Verify each chapter against your official syllabus.`);});
     $("#accountButton")?.addEventListener("click",openAuth);
     $("#authClose")?.addEventListener("click",()=>$("#authBackdrop").classList.add("hidden"));
