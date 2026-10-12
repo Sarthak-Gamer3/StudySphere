@@ -81,3 +81,8 @@ The `ncert-catalog.js` file adds chapter navigation for common Class 11–12 NCE
 
 ## NCERT chapter catalogue update
 The `ncert-catalog.js` file adds chapter navigation for common Class 11–12 NCERT subjects. Chapter names and editions can change with rationalisation, so verify against the official NCERT textbook portal: https://ncert.nic.in/textbook.php. StudySphere uses original study-guide prompts; it does not reproduce full NCERT textbook chapters. The class selector updates the active class and chapter list.
+
+
+## Expanded AI tutor
+
+The tutor interface now collects class, stream, subject, board and answer style, and sends recent chat context to a secure backend. To enable live AI answers, follow `AI-SETUP.md` and deploy `ai-worker.js` as a Cloudflare Worker. Do not put API keys in this public repository.

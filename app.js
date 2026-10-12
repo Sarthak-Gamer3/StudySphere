@@ -174,21 +174,44 @@
     if(/hello|hi\b|hey/.test(m)) return "Hi! 👋 Tell me your class, subject and topic, and I'll help you get started. In demo mode I can explain the sample chapters included in this website.";
     return "I'm currently in **demo mode**, so I can't generate a fresh AI answer to every question yet. I can show explanations for the sample chapters included here. Try a question like “Explain Laws of Motion” or connect a secure AI backend in Site settings to enable real AI responses directly inside this chat.";
   }
+  function tutorContext() {
+    return {
+      class: (document.querySelector("#tutorClass")?.value || state.classLevel || "11"),
+      stream: document.querySelector("#tutorStream")?.value || "science",
+      subject: document.querySelector("#tutorSubject")?.value || "General help",
+      board: document.querySelector("#tutorBoard")?.value || state.board || "CBSE / NCERT",
+      mode: document.querySelector("#tutorMode")?.value || "teach"
+    };
+  }
+  function demoAnswer(message) {
+    return "**AI tutor is not connected yet.** Your question was received, but this website needs its secure AI backend to generate a fresh answer.\n\nOpen **Site settings → AI tutor connection** and follow `AI-SETUP.md` to connect the tutor. Once connected, it can help with Class 11 and 12 academic topics across Science, Commerce and Humanities.\n\nFor now, try the Chapters section for the sample lessons already included.";
+  }
   async function sendPrompt(message) {
     message=(message||"").trim();if(!message)return;
-    addMessage("user",safe(message).replace(/\n/g,"<br>"));$("#chatInput").value="";
+    const context=tutorContext();
+    addMessage("user",safe(message).replace(/\n/g,"<br>"));
+    const chatInput=$("#chatInput");if(chatInput)chatInput.value="";
     const loading=document.createElement("div");loading.className="chat-message assistant";loading.innerHTML='<div class="chat-avatar">✳</div><div class="bubble">Thinking through your question…</div>';loading.id="chatLoading";$("#chatMessages").appendChild(loading);$("#chatMessages").scrollTop=$("#chatMessages").scrollHeight;
+    state.chat.push({role:"user",content:message, message, date:Date.now(), context});
     try {
+      let answer;
       if(config.AI_ENDPOINT) {
-        const response=await fetch(config.AI_ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message,class:state.classLevel})});
-        if(!response.ok)throw new Error("AI service returned an error");
-        const payload=await response.json();if(!payload.answer)throw new Error("AI response was missing an answer");
-        loading.remove();addMessage("assistant",safe(payload.answer).replace(/\n/g,"<br>"));
-      } else {
-        await new Promise(resolve=>setTimeout(resolve,350));loading.remove();addMessage("assistant",safe(demoAnswer(message)).replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>").replace(/\n/g,"<br>"));
-      }
-    } catch(e) { loading.remove();addMessage("assistant","I couldn't reach the AI service. Please try again later or check the AI endpoint configuration."); }
-    state.chat.push({role:"user",message,date:Date.now()});if(state.chat.length>50)state.chat=state.chat.slice(-50);save();
+        const history=state.chat.slice(-12).filter(m=>m.role==="user"||m.role==="assistant").map(m=>({role:m.role,content:m.content||m.message||""}));
+        const response=await fetch(config.AI_ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message, class:context.class, stream:context.stream, subject:context.subject, board:context.board, mode:context.mode, history})});
+        let payload={};try{payload=await response.json();}catch{}
+        if(!response.ok)throw new Error(payload.error||"AI service returned an error");
+        if(!payload.answer)throw new Error("AI response was missing an answer");
+        answer=String(payload.answer);
+      } else { await new Promise(resolve=>setTimeout(resolve,250)); answer=demoAnswer(message); }
+      loading.remove();
+      addMessage("assistant",safe(answer).replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>").replace(/`([^`]+)`/g,"<code>$1</code>").replace(/\n/g,"<br>"));
+      state.chat.push({role:"assistant",content:answer,date:Date.now(),context});
+    } catch(e) {
+      loading.remove();
+      const errorMessage=String(e.message||"");
+      addMessage("assistant",safe(errorMessage.includes("Failed to fetch")?"I couldn't reach the AI service. Check your Worker URL, deployment and allowed-origin settings, then try again.":`The AI service could not answer this request: ${errorMessage}. Please try again shortly.`));
+    }
+    if(state.chat.length>30)state.chat=state.chat.slice(-30);save();
   }
   function doSearch(query) {
     const q=query.trim().toLowerCase();if(!q)return;
@@ -229,6 +252,9 @@
     $("#quizSubject").addEventListener("change",()=>{});
     $("#pyqClass").addEventListener("change",renderPyqs);$("#pyqSubject").addEventListener("change",renderPyqs);$("#pyqYear").addEventListener("change",renderPyqs);
     $("#saveNote").addEventListener("click",saveNote);$("#noteBody").addEventListener("input",()=>$("#noteWordCount").textContent=($("#noteBody").value.trim().match(/\S+/g)||[]).length+" words");
+    $("#tutorClass")?.addEventListener("change",e=>{state.classLevel=e.target.value;save();});
+    $("#tutorBoard")?.addEventListener("change",e=>{state.board=e.target.value;save();});
+    $("#clearChat")?.addEventListener("click",()=>{state.chat=[];save();$("#chatMessages").innerHTML='<div class="chat-message assistant"><div class="chat-avatar">✳</div><div class="bubble"><strong>New chat started.</strong><p>Choose your class, stream and subject, then ask your question.</p></div></div>';});
     $("#chatForm").addEventListener("submit",e=>{e.preventDefault();sendPrompt($("#chatInput").value);});
     $("#chatInput").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();$("#chatForm").requestSubmit();}});
     $("#modalClose").addEventListener("click",()=>$("#modalBackdrop").classList.add("hidden"));$("#modalBackdrop").addEventListener("click",e=>{if(e.target.id==="modalBackdrop")$("#modalBackdrop").classList.add("hidden");});
@@ -239,7 +265,10 @@
     document.documentElement.dataset.theme=state.theme==="dark"?"dark":"light";$("#themeIcon").textContent=state.theme==="dark"?"☀":"☾";
     renderSubjectOptions($("#subjectFilter"),true);renderSubjectOptions($("#quizSubject"));renderSubjectOptions($("#pyqSubject"),true);
     $("#subjectFilter").value="all";$("#pyqSubject").value="all";
-    renderDashboard();renderChapters();renderQuizHistory();renderNotes();renderPyqs();updateStats();bindEvents();showView(PAGE_VIEW);refreshAuth();
+    renderDashboard();renderChapters();renderQuizHistory();renderNotes();renderPyqs();updateStats();bindEvents();
+    if($("#tutorClass"))$("#tutorClass").value=String(state.classLevel||"11");
+    if($("#tutorBoard"))$("#tutorBoard").value=state.board==="CBSE"?"CBSE / NCERT":(state.board||"CBSE / NCERT");
+    showView(PAGE_VIEW);refreshAuth();
   }
   init();
 })();

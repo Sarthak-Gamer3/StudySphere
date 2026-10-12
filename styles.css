@@ -16,3 +16,6 @@ html[data-theme=dark]{--bg:#141622;--surface:#1d2030;--surface-2:#272a3b;--text:
 .auth-status{font-size:13px;color:var(--muted);line-height:1.6;overflow-wrap:anywhere}
 .auth-card .modal-close{position:absolute;right:16px;top:12px}
 @media(max-width:650px){.account-button{font-size:11px;padding:8px}.top-actions{gap:6px}}
+
+/* AI tutor context controls */
+.tutor-context{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding:14px;margin:0 0 12px;background:var(--surface-2);border:1px solid var(--line);border-radius:12px}.tutor-context label{display:flex;flex-direction:column;gap:5px;font-size:10px;font-weight:700;color:var(--muted)}.tutor-context select{width:100%;min-width:0;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--text);font-size:11px}.tutor-context button{align-self:end;justify-self:start}@media(max-width:600px){.tutor-context{grid-template-columns:repeat(2,minmax(0,1fr));padding:10px;gap:8px}.tutor-context label{font-size:9px}.tutor-context select{font-size:10px}}
